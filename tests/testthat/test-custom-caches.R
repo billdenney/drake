@@ -1,13 +1,5 @@
 drake_context("custom caches")
 
-test_with_dir("cache_path finding", {
-  skip_on_cran() # CRAN gets whitelist tests only (check time limits).
-  x <- new_cache("x")
-  expect_true(is.character(cache_path_(x)))
-  expect_null(cache_path_(NULL))
-  expect_null(cache_path_(1234))
-})
-
 test_with_dir("fancy cache features, bad paths", {
   skip_on_cran() # CRAN gets whitelist tests only (check time limits).
   saveRDS(1, file = "exists")
@@ -127,5 +119,4 @@ test_with_dir("use two differnt file system caches", {
   expect_true(file.exists("cache1"))
   expect_true(file.exists("my_new_cache"))
   expect_true(grepl("my_new_cache", con2$cache$driver$path, fixed = TRUE))
-  expect_true(grepl("my_new_cache", cache_path_(cache2), fixed = TRUE))
 })

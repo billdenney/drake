@@ -1319,7 +1319,7 @@ cache_path <- function(cache = NULL) {
     package = "drake",
     msg = "cache_path() in drake is deprecated."
   )
-  cache_path_(cache)
+  cache$driver$path
 }
 
 #' @title Deprecated. List all the `storr` cache namespaces used by drake.

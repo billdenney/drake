@@ -6,22 +6,6 @@ assert_cache <- function(cache) {
   }
 }
 
-
-# Return the file path where the cache is stored, if applicable.
-cache_path_ <- function(cache = NULL) {
-  if (is.null(cache)) {
-    NULL
-  } else if ("storr" %in% class(cache)) {
-    cache$driver$path
-  } else {
-    NULL
-  }
-}
-
-force_cache_path <- function(cache = NULL) {
-  cache_path_(cache) %||% default_cache_path()
-}
-
 #' @title Get the default cache of a `drake` project.
 #' @description Only works if the cache
 #' is in a folder called `.drake/`. See the description of the
