@@ -1,4 +1,3 @@
-
 #' @title Write a template file for deploying
 #'   work to a cluster / job scheduler.
 #' @description See the example files from
