@@ -3,36 +3,36 @@
 \name{r_make}
 \alias{r_make}
 \alias{r_drake_build}
-\alias{r_outdated}
-\alias{r_missed}
-\alias{r_drake_graph_info}
-\alias{r_vis_drake_graph}
-\alias{r_sankey_drake_graph}
 \alias{r_drake_ggraph}
+\alias{r_drake_graph_info}
+\alias{r_missed}
+\alias{r_outdated}
 \alias{r_predict_runtime}
 \alias{r_predict_workers}
+\alias{r_sankey_drake_graph}
+\alias{r_vis_drake_graph}
 \title{Experimental: reproducible R session management for drake functions}
 \usage{
 r_make(source = NULL, r_fn = NULL, r_args = list())
 
 r_drake_build(..., source = NULL, r_fn = NULL, r_args = list())
 
-r_outdated(..., source = NULL, r_fn = NULL, r_args = list())
-
-r_missed(..., source = NULL, r_fn = NULL, r_args = list())
+r_drake_ggraph(..., source = NULL, r_fn = NULL, r_args = list())
 
 r_drake_graph_info(..., source = NULL, r_fn = NULL, r_args = list())
 
-r_vis_drake_graph(..., source = NULL, r_fn = NULL, r_args = list())
+r_missed(..., source = NULL, r_fn = NULL, r_args = list())
 
-r_sankey_drake_graph(..., source = NULL, r_fn = NULL,
-  r_args = list())
-
-r_drake_ggraph(..., source = NULL, r_fn = NULL, r_args = list())
+r_outdated(..., source = NULL, r_fn = NULL, r_args = list())
 
 r_predict_runtime(..., source = NULL, r_fn = NULL, r_args = list())
 
 r_predict_workers(..., source = NULL, r_fn = NULL, r_args = list())
+
+r_sankey_drake_graph(..., source = NULL, r_fn = NULL,
+  r_args = list())
+
+r_vis_drake_graph(..., source = NULL, r_fn = NULL, r_args = list())
 }
 \arguments{
 \item{source}{Path to an R script file that

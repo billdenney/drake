@@ -16,7 +16,7 @@
 #'   2. Once you assign an expression to a variable,
 #'     do not modify the variable any more.
 #'     The target/command binding should be permanent.
-#'   3. Keep it simple. Please use the assignment operators rather than 
+#'   3. Keep it simple. Please use the assignment operators rather than
 #'     `assign()` and similar functions.
 #' @param path A file path to an R script or `knitr` report.
 #' @examples
@@ -45,13 +45,6 @@ code_to_plan <- function(path) {
   out <- do.call(rbind, out)
   out <- parse_custom_plan_columns(out)
   sanitize_plan(out)
-}
-
-node_plan <- function(node) {
-  weak_tibble(
-    target = safe_deparse(node@code[[2]]),
-    command = safe_deparse(node@code[[3]])
-  )
 }
 
 #' @title Turn a `drake` workflow plan data frame
@@ -140,28 +133,4 @@ plan_to_notebook <- function(plan, con) {
     "```"
   )
   writeLines(out, con = con)
-}
-
-plan_to_text <- function(plan) {
-  . <- NULL
-  graph <- drake_config(
-    plan[, c("target", "command")],
-    envir = new.env(parent = emptyenv()),
-    cache = storr::storr_environment(),
-    verbose = FALSE
-  )$graph
-  order <- igraph::topo_sort(graph)$name
-  order <- intersect(order, plan$target)
-  order <- match(order, table = plan$target)
-  plan <- plan[order, ]
-  if (!is.character(plan$command)) {
-    plan$command <- vapply(plan$command,
-                           safe_deparse,
-                           FUN.VALUE = character(1))
-  }
-  text <- paste(plan$target, "<-", plan$command)
-  if (requireNamespace("styler")) {
-    text <- styler::style_text(text)
-  }
-  text
 }

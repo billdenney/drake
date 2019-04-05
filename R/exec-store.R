@@ -81,7 +81,7 @@ finalize_storage <- function(target, value, meta, config, verbose) {
   )
   config$cache$set(key = target, value = meta, namespace = "meta")
   if (!meta$imported && verbose) {
-    console_time(target, meta, config)
+    msg_time(target, meta, config)
   }
 }
 
