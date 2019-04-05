@@ -1,11 +1,3 @@
-assert_cache <- function(cache) {
-  cache_exists <- inherits(x = cache$driver, what = "driver_environment") ||
-    file.exists(cache$driver$path)
-  if (!cache_exists) {
-    stop("drake cache missing.", call. = FALSE)
-  }
-}
-
 #' @title Get the default cache of a `drake` project.
 #' @description Only works if the cache
 #' is in a folder called `.drake/`. See the description of the
@@ -120,51 +112,6 @@ find_cache <- function(
   file.path(path, dir)
 }
 
-this_cache_ <- function(
-  path = NULL,
-  force = FALSE,
-  verbose = 1L,
-  fetch_cache = NULL,
-  console_log_file = NULL
-) {
-  path <- path %||% default_cache_path()
-  deprecate_force(force)
-  deprecate_fetch_cache(fetch_cache)
-  usual_path_missing <- is.null(path) || !file.exists(path)
-  if (usual_path_missing) {
-    return(NULL)
-  }
-  config <- list(verbose = verbose, console_log_file = console_log_file)
-  log_msg("cache", path, config = config)
-  cache <- drake_try_fetch_rds(path = path)
-  cache_vers_warn(cache = cache)
-  cache
-}
-
-drake_try_fetch_rds <- function(path) {
-  out <- try(drake_fetch_rds(path = path), silent = TRUE)
-  if (!inherits(out, "try-error")) {
-    return(out)
-  }
-  stop(
-    "drake failed to get the storr::storr_rds() cache at ", path, ". ",
-    "Something is wrong with the file system of the cache. ",
-    "If you downloaded it from an online repository, are you sure ",
-    "all the files were downloaded correctly? ",
-    "If all else fails, remove the folder at ", path, " and try again.",
-    call. = FALSE
-  )
-}
-
-drake_fetch_rds <- function(path) {
-  if (!file.exists(path)) {
-    return(NULL)
-  }
-  hash_algo_file <- file.path(path, "config", "hash_algorithm")
-  hash_algo <- scan(hash_algo_file, quiet = TRUE, what = character())
-  storr::storr_rds(path = path, hash_algorithm = hash_algo)
-}
-
 #' @title  Make a new `drake` cache.
 #' @description Uses the [storr_rds()] function
 #' from the `storr` package.
@@ -224,76 +171,6 @@ new_cache <- function(
     con = file.path(path, ".gitignore")
   )
   cache
-}
-
-# Load an existing drake files system cache if it exists
-# or create a new one otherwise.
-recover_cache_ <- function(
-  path = NULL,
-  hash_algorithm = NULL,
-  short_hash_algo = NULL,
-  long_hash_algo = NULL,
-  force = FALSE,
-  verbose = 1L,
-  fetch_cache = NULL,
-  console_log_file = NULL
-) {
-  path <- path %||% default_cache_path()
-  deprecate_force(force)
-  deprecate_fetch_cache(fetch_cache)
-  deprecate_hash_algo_args(short_hash_algo, long_hash_algo)
-  hash_algorithm <- set_hash_algorithm(hash_algorithm)
-  cache <- this_cache_(
-    path = path,
-    verbose = verbose,
-    fetch_cache = fetch_cache,
-    console_log_file = console_log_file
-  )
-  if (is.null(cache)) {
-    cache <- new_cache(
-      path = path,
-      verbose = verbose,
-      hash_algorithm = hash_algorithm,
-      fetch_cache = fetch_cache,
-      console_log_file = console_log_file
-    )
-  }
-  init_common_values(cache)
-  cache
-}
-
-# Generate a flat text log file to represent the state of the cache.
-drake_cache_log_file_ <- function(
-  file = "drake_cache.log",
-  path = getwd(),
-  search = TRUE,
-  cache = drake::get_cache(path = path, search = search, verbose = verbose),
-  verbose = 1L,
-  jobs = 1L,
-  targets_only = FALSE
-) {
-  if (!length(file) || identical(file, FALSE)) {
-    return(invisible())
-  } else if (identical(file, TRUE)) {
-    file <- formals(drake_cache_log_file_)$file
-  }
-  out <- drake_cache_log(
-    path = path,
-    search = search,
-    cache = cache,
-    verbose = verbose,
-    jobs = jobs,
-    targets_only = targets_only
-  )
-  # Suppress partial arg match warnings.
-  suppressWarnings(
-    write.table(
-      x = out,
-      file = file,
-      quote = FALSE,
-      row.names = FALSE
-    )
-  )
 }
 
 #' @title Get a table that represents the state of the cache.
@@ -400,107 +277,6 @@ drake_cache_log <- function(
   out
 }
 
-single_cache_log <- function(key, cache) {
-  hash <- cache$get_hash(key = key)
-  imported <- get_from_subspace(
-    key = key,
-    subspace = "imported",
-    namespace = "meta",
-    cache = cache
-  )
-  imported <- ifelse(is.na(imported), TRUE, imported)
-  type <- ifelse(imported, "import", "target")
-  weak_tibble(hash = hash, type = type, name = key)
-}
-
-default_cache_path <- function(root = getwd()) {
-  file.path(root, ".drake")
-}
-
-# Pre-set the values to avoid https://github.com/richfitz/storr/issues/80.
-init_common_values <- function(cache) {
-  common_values <- list(TRUE, FALSE, "done", "running", "failed")
-  cache$mset(
-    key = as.character(common_values),
-    value = common_values,
-    namespace = "common"
-  )
-}
-
-clear_tmp_namespace <- function(cache, jobs, namespace) {
-  lightly_parallelize(
-    X = cache$list(),
-    FUN = function(target) {
-      cache$del(key = target, namespace = namespace)
-    },
-    jobs = jobs
-  )
-  cache$clear(namespace = namespace)
-  invisible()
-}
-
-keys_are_mangled <- function(cache) {
-  "driver_rds" %in% class(cache$driver) &&
-    identical(cache$driver$mangle_key, TRUE)
-}
-
-safe_get <- function(key, namespace, config) {
-  out <- just_try(config$cache$get(key = key, namespace = namespace))
-  if (inherits(out, "try-error")) {
-    out <- NA_character_
-  }
-  out
-}
-
-safe_get_hash <- function(key, namespace, config) {
-  out <- just_try(config$cache$get_hash(key = key, namespace = namespace))
-  if (inherits(out, "try-error")) {
-    out <- NA_character_
-  }
-  out
-}
-
-target_exists <- function(target, config) {
-  config$cache$exists(key = target)
-}
-
-memo_expr <- function(expr, cache, ...) {
-  if (is.null(cache)) {
-    return(force(expr))
-  }
-  lang <- match.call(expand.dots = FALSE)$expr
-  key <- digest::digest(list(lang, ...), algo = cache$driver$hash_algorithm)
-  if (cache$exists(key = key, namespace = "memoize")) {
-    return(cache$get(key = key, namespace = "memoize"))
-  }
-  value <- force(expr)
-  cache$set(key = key, value = value, namespace = "memoize")
-  value
-}
-
-set_hash_algorithm <- function(hash_algorithm) {
-  if (is.null(hash_algorithm)) {
-    "xxhash64"
-  } else {
-    hash_algorithm
-  }
-}
-
-deprecate_hash_algo_args <- function(
-  short_hash_algo = NULL,
-  long_hash_algo = NULL
-) {
-  if (!is.null(short_hash_algo) || !is.null(long_hash_algo)) {
-    warning(
-      "The long_hash_algo and short_hash_algo arguments to drake functions ",
-      "are deprecated. drake now uses only one hash algorithm, ",
-      "which you can set ",
-      "with the hash_algorithm argument in new_cache().",
-      call. = FALSE
-    )
-  }
-}
-
 #' @title List targets in the cache.
 #' @description Tip: read/load a cached item with [readd()]
 #'   or [loadd()].
@@ -594,6 +370,40 @@ cached <- function(
     targets <- targets_only(targets, cache, jobs)
   }
   display_keys(targets)
+}
+
+
+#' @title Show how a target/import was produced.
+#' @description Show the command that produced a target
+#'   or indicate that the object or file was imported.
+#' @export
+#' @param target Symbol denoting the target or import
+#'   or a character vector if character_only is `TRUE`.
+#' @param config A [drake_config()] list.
+#' @param character_only Logical, whether to interpret
+#'   `target` as a symbol (`FALSE`) or character vector
+#'   (`TRUE`).
+#' @examples
+#' plan <- drake_plan(x = sample.int(15))
+#' cache <- storr::storr_environment() # custom in-memory cache
+#' make(plan, cache = cache)
+#' config <- drake_config(plan, cache = cache)
+#' show_source(x, config)
+show_source <- function(target, config, character_only = FALSE) {
+  if (!character_only) {
+    target <- as.character(substitute(target))
+  }
+  cache <- config$cache
+  meta <- diagnose(target = target, cache = cache, character_only = TRUE)
+  prefix <- ifelse(is_encoded_path(target), "File ", "Target ")
+  if (meta$imported) {
+    message(prefix, target, " was imported.")
+  } else {
+    command <- gsub("^\\{\n ", "", meta$command)
+    command <- gsub(" \n\\}$", "", command)
+    message(
+      prefix, target, " was built from command:\n  ", target, " = ", command)
+  }
 }
 
 targets_only <- function(targets, cache, jobs) {
