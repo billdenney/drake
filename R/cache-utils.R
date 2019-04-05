@@ -1,3 +1,33 @@
+bind_load_target <- function(target, cache, namespace, envir, verbose) {
+  assert_pkg("bindr")
+  # Allow active bindings to overwrite existing variables.
+  if (exists(x = target, envir = envir, inherits = FALSE)) {
+    message(
+      "Replacing already-loaded variable ", target,
+      " with an active binding."
+    )
+    remove(list = target, envir = envir)
+  }
+  bindr::populate_env(
+    env = envir,
+    names = as.character(target),
+    fun = function(key, cache, namespace) {
+      if (!length(namespace)) {
+        # Now impractical to cover because loadd() checks the namespace,
+        # but good to have around anyway.
+        namespace <- cache$default_namespace # nocov
+      }
+      cache$get(
+        key = as.character(key),
+        namespace = as.character(namespace),
+        use_cache = TRUE
+      )
+    },
+    cache = cache,
+    namespace = namespace
+  )
+}
+
 cleaned_namespaces_ <- function(
   default = storr::storr_environment()$default_namespace
 ) {
@@ -79,6 +109,21 @@ drake_fetch_rds <- function(path) {
   storr::storr_rds(path = path, hash_algorithm = hash_algo)
 }
 
+#' @title Load a target right away (internal function)
+#' @description This function is only exported
+#' to make active bindings work safely.
+#' It is not actually a user-side function.
+#' @keywords internal
+#' @export
+#' @inheritParams loadd
+eager_load_target <- function(target, cache, namespace, envir, verbose) {
+  value <- cache$get(key = target, namespace = namespace)
+  assign(x = target, value = value, envir = envir)
+  local <- environment()
+  rm(value, envir = local)
+  invisible()
+}
+
 # Pre-set the values to avoid https://github.com/richfitz/storr/issues/80.
 init_common_values <- function(cache) {
   common_values <- list(TRUE, FALSE, "done", "running", "failed")
@@ -88,6 +133,16 @@ init_common_values <- function(cache) {
     namespace = "common"
   )
 }
+
+is_imported_cache <- Vectorize(function(target, cache) {
+  cache$exists(key = target) &&
+    diagnose(
+      target = target,
+      character_only = TRUE,
+      cache = cache
+    )$imported
+},
+"target", SIMPLIFY = TRUE)
 
 keys_are_mangled <- function(cache) {
   "driver_rds" %in% class(cache$driver) &&
@@ -105,6 +160,33 @@ list_multiple_namespaces <- function(cache, namespaces, jobs = 1) {
   Reduce(out, f = base::union)
 }
 
+load_target <- function(target, cache, namespace, envir, verbose, lazy) {
+  switch(
+    lazy,
+    eager = eager_load_target(
+      target = target,
+      cache = cache,
+      namespace = namespace,
+      envir = envir,
+      verbose = verbose
+    ),
+    promise = promise_load_target(
+      target = target,
+      cache = cache,
+      namespace = namespace,
+      envir = envir,
+      verbose = verbose
+    ),
+    bind = bind_load_target(
+      target = target,
+      cache = cache,
+      namespace = namespace,
+      envir = envir,
+      verbose = verbose
+    )
+  )
+}
+
 memo_expr <- function(expr, cache, ...) {
   if (is.null(cache)) {
     return(force(expr))
@@ -117,6 +199,26 @@ memo_expr <- function(expr, cache, ...) {
   value <- force(expr)
   cache$set(key = key, value = value, namespace = "memoize")
   value
+}
+
+parse_lazy_arg <- function(lazy) {
+  if (identical(lazy, FALSE)) {
+    "eager"
+  } else if (identical(lazy, TRUE)) {
+    "promise"
+  } else {
+    match.arg(arg = lazy, choices = c("eager", "promise", "bind"))
+  }
+}
+
+promise_load_target <- function(target, cache, namespace, envir, verbose) {
+  eval_env <- environment()
+  delayedAssign(
+    x = target,
+    value = cache$get(key = target, namespace = namespace),
+    eval.env = eval_env,
+    assign.env = envir
+  )
 }
 
 # Load an existing drake files system cache if it exists
@@ -194,6 +296,17 @@ single_cache_log <- function(key, cache) {
 
 target_exists <- function(target, config) {
   config$cache$exists(key = target)
+}
+
+targets_only <- function(targets, cache, jobs) {
+  parallel_filter(
+    x = targets,
+    f = function(target) {
+      !is_imported_cache(target = target, cache = cache) &&
+        !is_encoded_path(target)
+    },
+    jobs = jobs
+  )
 }
 
 # List the `storr` cache namespaces that store target-level information.
