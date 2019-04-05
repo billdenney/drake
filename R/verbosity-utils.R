@@ -111,4 +111,3 @@ wrap_text <- Vectorize(
   },
   "x"
 )
-
