@@ -1,24 +1,3 @@
-shapes <- c(
-  object = "dot",
-  file = "square",
-  funct = "triangle",
-  cluster = "diamond",
-  other = "dot"
-)
-
-shape_of <- Vectorize(function(x) {
-  available <- x %in% names(shapes)
-  if (!available) {
-    x <- "other"
-  }
-  shapes[x]
-},
-"x", USE.NAMES = FALSE)
-
-
-hover_lines <- 10
-hover_width <- 49
-
 append_build_times <- function(config) {
   with(config, {
     time_data <- build_times(
@@ -207,6 +186,8 @@ get_raw_node_category_data <- function(config) {
   config
 }
 
+hover_lines <- 10
+
 hover_text <- function(config) {
   with(config, {
     if (!hover) {
@@ -225,6 +206,8 @@ hover_text <- function(config) {
     nodes
   })
 }
+
+hover_width <- 49
 
 #' @title Create the nodes data frame used in the legend
 #'   of the graph visualizations.
@@ -344,6 +327,23 @@ resolve_levels <- function(config) {
   }
   config$nodes
 }
+
+shapes <- c(
+  object = "dot",
+  file = "square",
+  funct = "triangle",
+  cluster = "diamond",
+  other = "dot"
+)
+
+shape_of <- Vectorize(function(x) {
+  available <- x %in% names(shapes)
+  if (!available) {
+    x <- "other"
+  }
+  shapes[x]
+},
+"x", USE.NAMES = FALSE)
 
 style_nodes <- function(config) {
   with(config, {
