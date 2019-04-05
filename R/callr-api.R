@@ -64,15 +64,8 @@ r_drake_build <- function(..., source = NULL, r_fn = NULL, r_args = list()) {
 #' @rdname r_make
 #' @export
 #' @inheritParams r_make
-r_outdated <- function(..., source = NULL, r_fn = NULL, r_args = list()) {
-  r_drake(source, drake::outdated, list(...), r_fn, r_args)
-}
-
-#' @rdname r_make
-#' @export
-#' @inheritParams r_make
-r_missed <- function(..., source = NULL, r_fn = NULL, r_args = list()) {
-  r_drake(source, drake::missed, list(...), r_fn, r_args)
+r_drake_ggraph <- function(..., source = NULL, r_fn = NULL, r_args = list()) {
+  r_drake(source, drake::drake_ggraph, list(...), r_fn, r_args)
 }
 
 #' @rdname r_make
@@ -87,30 +80,15 @@ r_drake_graph_info <- function(
 #' @rdname r_make
 #' @export
 #' @inheritParams r_make
-r_vis_drake_graph <- function(
-  ..., source = NULL, r_fn = NULL, r_args = list()
-) {
-  assert_pkg("visNetwork")
-  requireNamespace("visNetwork")
-  r_drake(source, drake::vis_drake_graph, list(...), r_fn, r_args)
+r_missed <- function(..., source = NULL, r_fn = NULL, r_args = list()) {
+  r_drake(source, drake::missed, list(...), r_fn, r_args)
 }
 
 #' @rdname r_make
 #' @export
 #' @inheritParams r_make
-r_sankey_drake_graph <- function(
-  ..., source = NULL, r_fn = NULL, r_args = list()
-) {
-  assert_pkg("networkD3")
-  requireNamespace("networkD3")
-  r_drake(source, drake::sankey_drake_graph, list(...), r_fn, r_args)
-}
-
-#' @rdname r_make
-#' @export
-#' @inheritParams r_make
-r_drake_ggraph <- function(..., source = NULL, r_fn = NULL, r_args = list()) {
-  r_drake(source, drake::drake_ggraph, list(...), r_fn, r_args)
+r_outdated <- function(..., source = NULL, r_fn = NULL, r_args = list()) {
+  r_drake(source, drake::outdated, list(...), r_fn, r_args)
 }
 
 #' @rdname r_make
@@ -131,4 +109,26 @@ r_predict_workers <- function(
   ..., source = NULL, r_fn = NULL, r_args = list()
 ) {
   r_drake(source, drake::predict_workers, list(...), r_fn, r_args)
+}
+
+#' @rdname r_make
+#' @export
+#' @inheritParams r_make
+r_sankey_drake_graph <- function(
+  ..., source = NULL, r_fn = NULL, r_args = list()
+) {
+  assert_pkg("networkD3")
+  requireNamespace("networkD3")
+  r_drake(source, drake::sankey_drake_graph, list(...), r_fn, r_args)
+}
+
+#' @rdname r_make
+#' @export
+#' @inheritParams r_make
+r_vis_drake_graph <- function(
+  ..., source = NULL, r_fn = NULL, r_args = list()
+) {
+  assert_pkg("visNetwork")
+  requireNamespace("visNetwork")
+  r_drake(source, drake::vis_drake_graph, list(...), r_fn, r_args)
 }
